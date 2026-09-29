@@ -3,6 +3,12 @@ on:
   schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "Modalità"
+        type: choice
+        default: auto
+        options: [auto, full, regime]
 permissions:
   contents: write
 concurrency:
@@ -23,7 +29,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           COINGECKO_KEY: ${{ secrets.COINGECKO_KEY }}
           PAGE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/scout.html
-        run: node scout-run.js ${{ github.event_name == 'workflow_dispatch' && 'full' || 'auto' }}
+        run: node scout-run.js ${{ github.event.inputs.mode || 'auto' }}
       - name: Salva risultati
         run: |
           git config user.name "scout-bot"
@@ -32,4 +38,3 @@ jobs:
           git diff --cached --quiet || git commit -m "scout: aggiornamento $(date -u +'%Y-%m-%d %H:%M')"
           git pull --rebase origin ${{ github.ref_name }} || true
           git push
-
