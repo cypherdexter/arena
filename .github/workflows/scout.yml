@@ -1,8 +1,7 @@
 name: Scout
 on:
   schedule:
-    - cron: "15 */6 * * *"
-    - cron: "45 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
 permissions:
   contents: write
@@ -12,22 +11,19 @@ concurrency:
 jobs:
   scout:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Modalità
-        id: mode
-        run: |
-          if [ "${{ github.event.schedule }}" = "45 * * * *" ]; then echo "mode=regime" >> $GITHUB_OUTPUT; else echo "mode=full" >> $GITHUB_OUTPUT; fi
       - name: Esegui Scout
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           COINGECKO_KEY: ${{ secrets.COINGECKO_KEY }}
           PAGE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/scout.html
-        run: node scout-run.js ${{ steps.mode.outputs.mode }}
+        run: node scout-run.js ${{ github.event_name == 'workflow_dispatch' && 'full' || 'auto' }}
       - name: Salva risultati
         run: |
           git config user.name "scout-bot"
@@ -36,3 +32,4 @@ jobs:
           git diff --cached --quiet || git commit -m "scout: aggiornamento $(date -u +'%Y-%m-%d %H:%M')"
           git pull --rebase origin ${{ github.ref_name }} || true
           git push
+
